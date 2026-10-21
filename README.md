@@ -1,4 +1,5 @@
 CS456 – Modern Cybersecurity
+-----------------------------------------------------------------------
 
 Mini Group Project 1: Resilient Security Systems – Part 1 (Failure Detection)
 
