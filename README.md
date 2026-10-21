@@ -1,17 +1,17 @@
 CS456 – Modern Cybersecurity
 -----------------------------------------------------------------------
 
-Mini Group Project 1: Resilient Security Systems – Part 1 (Failure Detection)
+# Mini Group Project 1: Resilient Security Systems – Part 1 (Failure Detection)
 
-Objective
+## Objective
 
 In our class so far, we have primarily focused on Confidentiality and Integrity. However, in real-world cybersecurity, Availability is a core pillar of the CIA triad alongside Confidentiality and Integrity. Availability guarantees that authorized entities have timely, uninterrupted access to critical information and operational services. Security-critical services, such as Authentication Servers (Kerberos KDCs), Intrusion Detection Systems (IDS), Certificate Authorities (CAs), and Security Information and Event Management (SIEM) pipelines, are high-value targets for Denial of Service (DoS) attacks, memory corruption exploits, resource starvation, and unexpected process crashes.
 
 To maintain high availability, security engineers deploy Availability Tactics: software architectural mechanisms specifically designed to detect faults, withstand disruptions, and recover operations. This two-week mini group project will challenge your team to build a resilient, distributed security service.
 
-Background
+## Background
 
-In mission-critical infrastructure, an outage can be as devastating as a data breach. Threat actors frequently attempt to eliminate availability through:
+### In mission-critical infrastructure, an outage can be as devastating as a data breach. Threat actors frequently attempt to eliminate availability through:
 
 • Volumetric Denial of Service (DoS): Flooding network pipes or daemon queues to starve resources (e.g., Mirai botnets).
 
@@ -19,7 +19,7 @@ In mission-critical infrastructure, an outage can be as devastating as a data br
 
 • Ransomware & Hostage Scenarios: Sabotaging services to hold functionality hostage (e.g., WannaCry).
 
-To defend availability, systems must not assume components are infallible. Instead, they must be designed with Architectural Availability Tactics, reusable design decisions specifically intended to handle faults, mitigate disruptions, and maintain uptime. Architectural tactics for availability generally fall into three operational categories: Detecting Faults, Recovering from Faults, and Preventing Faults.
+### To defend availability, systems must not assume components are infallible. Instead, they must be designed with Architectural Availability Tactics, reusable design decisions specifically intended to handle faults, mitigate disruptions, and maintain uptime. Architectural tactics for availability generally fall into three operational categories: Detecting Faults, Recovering from Faults, and Preventing Faults.
 
 • Detecting Faults: Before a system can react to a crash or disruption, it must reliably detect that an anomaly has occurred.
 
@@ -47,13 +47,13 @@ To defend availability, systems must not assume components are infallible. Inste
 
 ◦ Rate Limiting/Shedding Load: Restricting request intake to prevent thread-pool exhaustion and volumetric resource starvation.
 
-The Heartbeat Tactic: A Heartbeat is a fault-detection mechanism used in distributed and high-availability systems. An independent monitor periodically exchanges liveness messages with the monitored service across a communication channel. Heartbeat protocols generally fall into two models:
+### The Heartbeat Tactic: A Heartbeat is a fault-detection mechanism used in distributed and high-availability systems. An independent monitor periodically exchanges liveness messages with the monitored service across a communication channel. Heartbeat protocols generally fall into two models:
 
 • Push-Based Heartbeat (Unidirectional Notification): The critical process autonomously emits a small datagram (a "beat") at a regular, fixed period to the monitor. The monitor maintains an expiring countdown timer or sliding window. Each arrival of a valid beat resets the timer. If consecutive periods elapse without a beat, the monitor flags a timeout and raises a fault alert.
 
 • Pull-Based / Ping-Echo Heartbeat (Bidirectional Query): The monitor initiates the check by transmitting a PING query to the critical process at interval . The critical process must reply with an ACK or ECHO within a defined response window . If no response returns within , or after missed replies, the monitor triggers an alert.
 
-Engineering Trade-offs in Heartbeat Design: When implementing a heartbeat protocol, system designers must calibrate three key parameters:
+### Engineering Trade-offs in Heartbeat Design: When implementing a heartbeat protocol, system designers must calibrate three key parameters:
 
 • Frequency (): Sending beats too frequently (e.g., every 5 ms) consumes CPU cycles and saturates local network sockets. Sending beats too slowly (e.g., every 60 seconds) prolongs the system's "mean time to detect" (MTTD), leaving the service silently offline for a full minute before anyone notices.
 
@@ -61,7 +61,7 @@ Engineering Trade-offs in Heartbeat Design: When implementing a heartbeat protoc
 
 • Thread/Process Concurrency: Heartbeat emission must be decoupled from the primary service logic. If a service processes long-running authentication requests synchronously on its main thread, it could fail to emit a heartbeat simply because it is busy, triggering an erroneous failover.
 
-Cybersecurity Perspective: Securing the Heartbeat
+### Cybersecurity Perspective: Securing the Heartbeat
 
 In an adversarial environment, an unmonitored or unauthenticated heartbeat channel can itself become an attack vector:
 
@@ -71,11 +71,11 @@ In an adversarial environment, an unmonitored or unauthenticated heartbeat chann
 
 • Tampering & Replay: Stale heartbeat messages captured off the wire could be replayed by an attacker to mask a deliberate process crash.
 
-Designing a secure availability tactic requires considering not just system crashes, but also how an adversary might manipulate the detection channel itself.
+### Designing a secure availability tactic requires considering not just system crashes, but also how an adversary might manipulate the detection channel itself.
 
-Project Instructions
+## Project Instructions
 
-For this mini group project, you will create a lightweight security service protocol and simulate a realistic, non-deterministic system failure/crash. In Part 1, you will design and implement a monitoring agent that reliably distinguishes between healthy operations and process crashes (fault detection).
+### For this mini group project, you will create a lightweight security service protocol and simulate a realistic, non-deterministic system failure/crash. In Part 1, you will design and implement a monitoring agent that reliably distinguishes between healthy operations and process crashes (fault detection).
 
 You may use any languages or libraries.
 
@@ -189,9 +189,7 @@ e. Voiceover: Explain what is going on.
 
 Note: For team deliverables, one person may submit. For individual reflections, each individual must submit.
 
-Grading
-
-Here is the grading scheme for the project report:
+### Grading
 
 • Service script (15)
 
