@@ -16,7 +16,7 @@ def stop_firewall():
 
     for pid in pids:
         os.kill(pid, signal.SIGKILL)
-        print(f"[STOP] 💥 Killed firewall process {pid} on port {FIREWALL_PORT}.")
+        print(f"[STOP] Killed firewall process {pid} on port {FIREWALL_PORT}.")
 
 if __name__ == '__main__':
     stop_firewall()

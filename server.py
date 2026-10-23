@@ -69,10 +69,10 @@ def visit_site():
 
     if verdict is None:
         # Fail-open: the firewall is down, so the server stays available but traffic is NOT filtered
-        print(f"[SERVER] ⚠️ Firewall unreachable! Letting {site} ({target_ip}) through UNFILTERED")
+        print(f"[SERVER] ⚠️  Firewall unreachable! Letting {site} ({target_ip}) through UNFILTERED")
         banner = """
         <div style="background-color: orange; color: black; padding: 10px; text-align: center; font-family: Arial;">
-            ⚠️ Vulcan Firewall is DOWN - this connection was not inspected!
+            ⚠️ Vulcan Firewall is DOWN - this connection was not inspected! 
         </div>
         """
     else:
