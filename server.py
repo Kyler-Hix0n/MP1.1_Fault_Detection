@@ -1,4 +1,5 @@
-from flask import Flask, request
+from flask import Flask, request, send_from_directory
+import os
 import json
 import urllib.request
 import urllib.parse
@@ -27,6 +28,32 @@ def ask_firewall(target_ip):
     except Exception:
         # Connection refused / reset / timeout -> firewall crashed or is unreachable
         return None
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+# Mario GIF that bounces around the page like a DVD screensaver
+MARIO_GIF_HTML = """
+<img id="mario" src="/mario-dance.gif" alt="Mario dancing" style="position: fixed; left: 0; top: 0; width: 120px; z-index: 9999;">
+<script>
+    const mario = document.getElementById('mario');
+    let x = 50, y = 50, dx = 3, dy = 3;  // position and speed in pixels per frame
+    function bounce() {
+        const maxX = window.innerWidth - mario.offsetWidth;
+        const maxY = window.innerHeight - mario.offsetHeight;
+        x += dx;
+        y += dy;
+        if (x <= 0 || x >= maxX) { dx = -dx; x = Math.max(0, Math.min(x, maxX)); }
+        if (y <= 0 || y >= maxY) { dy = -dy; y = Math.max(0, Math.min(y, maxY)); }
+        mario.style.left = x + 'px';
+        mario.style.top = y + 'px';
+        requestAnimationFrame(bounce);
+    }
+    requestAnimationFrame(bounce);
+</script>
+"""
+
+@app.route('/mario-dance.gif')
+def mario_gif():
+    return send_from_directory(BASE_DIR, 'mario-dance.gif')
 
 @app.route('/')
 def browser_home():
@@ -83,7 +110,7 @@ def visit_site():
     if site == "llamallama.com":
         return banner + render_llama_website()
 
-    return f"{banner}<h3>Welcome to {site}</h3><a href='/'>Go Back</a>", 200
+    return f"{banner}<h3>Welcome to {site}</h3><a href='/'>Go Back</a>{MARIO_GIF_HTML}", 200
 
 def render_llama_website():
     return """
