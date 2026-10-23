@@ -1,18 +1,16 @@
-from flask import Flask, request, jsonify
-import socket
-import threading
-import time
-import random
-import os
+from flask import Flask, request
+import json
+import urllib.request
+import urllib.parse
 
 app = Flask(__name__)
 
-HEARTBEAT_IP = '127.0.0.1'
-HEARTBEAT_PORT = 8000
-HEARTBEAT_INTERVAL = 3.0  # T = 3 second
+SERVER_IP = '127.0.0.1'
+SERVER_PORT = 8080
 
-# LlamaLlama.com (or whatever fun website we want to make)is NOT in this list initially
-BLACKLIST = ["10.0.5.50", "192.168.1.99", "172.16.0.4"]
+# Where the firewall process (firewall.py) is listening for inspection requests
+FIREWALL_URL = 'http://127.0.0.1:8001/inspect'
+FIREWALL_TIMEOUT = 1.0  # seconds to wait for a verdict before treating the firewall as down
 
 # A dictionary simulating DNS
 DNS_RECORDS = {
@@ -20,12 +18,15 @@ DNS_RECORDS = {
     "some blocked website": "10.0.5.50"
 }
 
-def send_heartbeat():
-    """Background thread emitting a UDP heartbeat."""
-    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    while True:
-        sock.sendto(b"HEARTBEAT", (HEARTBEAT_IP, HEARTBEAT_PORT))
-        time.sleep(HEARTBEAT_INTERVAL)
+def ask_firewall(target_ip):
+    """Ask the firewall process for a verdict. Returns "ALLOW", "BLOCK", or None if the firewall is down."""
+    url = f"{FIREWALL_URL}?{urllib.parse.urlencode({'ip': target_ip})}"
+    try:
+        with urllib.request.urlopen(url, timeout=FIREWALL_TIMEOUT) as resp:
+            return json.loads(resp.read())["verdict"]
+    except Exception:
+        # Connection refused / reset / timeout -> firewall crashed or is unreachable
+        return None
 
 @app.route('/')
 def browser_home():
@@ -47,19 +48,16 @@ def browser_home():
     return html
 
 @app.route('/visit', methods=['GET'])
-def inspect_traffic():
-    """The Firewall Inspection Engine."""
+def visit_site():
+    """Route the user's request through the firewall, then serve the site."""
     site = request.args.get('site')
     target_ip = DNS_RECORDS.get(site, "0.0.0.0")
+    print(f"   user IP = {request.remote_addr}, target_ip = {target_ip}")
 
-    # The Non-Deterministic Crash (5% chance)
-    if random.randint(1, 20) == 1:
-        print("\n[FATAL ERROR] Buffer overflow in Firewall routing! Crashing...")
-        os._exit(1)
+    verdict = ask_firewall(target_ip)
 
-    # Firewall Logic
-    if target_ip in BLACKLIST:
-        print(f"[FIREWALL] BLOCKED access to {site} ({target_ip})")
+    if verdict == "BLOCK":
+        print(f"[SERVER] Firewall BLOCKED access to {site} ({target_ip})")
         return f"""
         <body style="background-color: darkred; color: white; text-align: center; padding: 50px; font-family: Arial;">
             <h1>🛑 ACCESS DENIED</h1>
@@ -68,14 +66,24 @@ def inspect_traffic():
             <a href="/" style="color: yellow;">Go Back</a>
         </body>
         """, 403
+
+    if verdict is None:
+        # Fail-open: the firewall is down, so the server stays available but traffic is NOT filtered
+        print(f"[SERVER] ⚠️ Firewall unreachable! Letting {site} ({target_ip}) through UNFILTERED")
+        banner = """
+        <div style="background-color: orange; color: black; padding: 10px; text-align: center; font-family: Arial;">
+            ⚠️ Vulcan Firewall is DOWN - this connection was not inspected!
+        </div>
+        """
     else:
-        print(f"[FIREWALL] ALLOWED access to {site} ({target_ip})")
-        
-        # If it's the Llama site, show the fun webpage!
-        if site == "llamallama.com":
-            return render_llama_website()
-        
-        return f"<h3>Welcome to {site}</h3><a href='/'>Go Back</a>", 200
+        print(f"[SERVER] Firewall ALLOWED access to {site} ({target_ip})")
+        banner = ""
+
+    # If it's the Llama site, show the fun webpage!
+    if site == "llamallama.com":
+        return banner + render_llama_website()
+
+    return f"{banner}<h3>Welcome to {site}</h3><a href='/'>Go Back</a>", 200
 
 def render_llama_website():
     return """
@@ -85,11 +93,11 @@ def render_llama_website():
         <pre style="font-size: 20px;">
            //
           //
-       __//__ 
-      /      \ 
+       __//__
+      /      \\
       |  0 0  |
       |   U   |
-       \____/ 
+       \\____/
         |  |
         |  |
         </pre>
@@ -98,17 +106,6 @@ def render_llama_website():
     </body>
     """
 
-@app.route('/hack', methods=['POST'])
-def hack_blacklist():
-    """Attacker endpoint: secretly add IPs to the blacklist."""
-    target_ip = request.args.get('ip')
-    if target_ip and target_ip not in BLACKLIST:
-        BLACKLIST.append(target_ip)
-        print(f"[WARNING] 🚨 UNAUTHORIZED BLACKLIST MODIFICATION: {target_ip} added!")
-        return jsonify({"status": "hacked", "message": f"{target_ip} is now blocked!"}), 200
-    return jsonify({"error": "Missing or duplicate IP"}), 400
-
 if __name__ == '__main__':
-    print("[FIREWALL] Starting Web Sentinel on port 8000...")
-    threading.Thread(target=send_heartbeat, daemon=True).start()
-    app.run(host='127.0.0.1', port=8000)
+    print(f"[SERVER] Starting web server on port {SERVER_PORT}...")
+    app.run(host=SERVER_IP, port=SERVER_PORT)
