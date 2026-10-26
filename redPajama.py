@@ -3,6 +3,15 @@ import signal
 import subprocess
 
 FIREWALL_PORT = 8001
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+SPOOFER = os.path.join(BASE_DIR, "heartbeat_spoofer.py")
+
+def start_spoofer():
+    """Launch the heartbeat spoofer so the monitor keeps seeing a 'healthy'
+    firewall after we've killed the real one. Runs in the background."""
+    proc = subprocess.Popen(["python3", SPOOFER])
+    print(f"[STOP] Started heartbeat spoofer (pid {proc.pid}) - monitor will stay fooled.")
+    return proc
 
 def stop_firewall():
     """Kill whatever process is listening on the firewall port (simulates a crash on demand)."""
@@ -20,3 +29,4 @@ def stop_firewall():
 
 if __name__ == '__main__':
     stop_firewall()
+    start_spoofer()

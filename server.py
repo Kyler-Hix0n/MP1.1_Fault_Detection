@@ -35,7 +35,7 @@ MARIO_GIF_HTML = """
 <img id="mario" src="/mario-dance.gif" alt="Mario dancing" style="position: fixed; left: 0; top: 0; width: 120px; z-index: 9999;">
 <script>
     const mario = document.getElementById('mario');
-    let x = 50, y = 50, dx = 3, dy = 3;  // position and speed in pixels per frame
+    let x = 50, y = 50, dx = 6, dy = 6;  // position and speed in pixels per frame
     function bounce() {
         const maxX = window.innerWidth - mario.offsetWidth;
         const maxY = window.innerHeight - mario.offsetHeight;
