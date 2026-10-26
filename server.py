@@ -19,9 +19,9 @@ DNS_RECORDS = {
     "some blocked website": "10.0.5.50"
 }
 
-def ask_firewall(target_ip):
+def ask_firewall(target_ip, payload=""):
     """Ask the firewall process for a verdict. Returns "ALLOW", "BLOCK", or None if the firewall is down."""
-    url = f"{FIREWALL_URL}?{urllib.parse.urlencode({'ip': target_ip})}"
+    url = f"{FIREWALL_URL}?{urllib.parse.urlencode({'ip': target_ip, 'payload': payload})}"
     try:
         with urllib.request.urlopen(url, timeout=FIREWALL_TIMEOUT) as resp:
             return json.loads(resp.read())["verdict"]
@@ -79,9 +79,11 @@ def visit_site():
     """Route the user's request through the firewall, then serve the site."""
     site = request.args.get('site')
     target_ip = DNS_RECORDS.get(site, "0.0.0.0")
-    print(f"   user IP = {request.remote_addr}, target_ip = {target_ip}")
+    dummy_payload = request.args.get('payload', 'standard web traffic')
+    
+    print(f"   user IP = {request.remote_addr}, target_ip = {target_ip}, payload = {dummy_payload}")
 
-    verdict = ask_firewall(target_ip)
+    verdict = ask_firewall(target_ip, dummy_payload)
 
     if verdict == "BLOCK":
         print(f"[SERVER] Firewall BLOCKED access to {site} ({target_ip})")
@@ -106,7 +108,7 @@ def visit_site():
         print(f"[SERVER] Firewall ALLOWED access to {site} ({target_ip})")
         banner = ""
 
-    # If it's the Llama site, show the fun webpage!
+ 
     if site == "llamallama.com":
         return banner + render_llama_website()
 
