@@ -14,7 +14,7 @@ HEARTBEAT_IP = '127.0.0.1'
 HEARTBEAT_PORT = 8000
 HEARTBEAT_INTERVAL = 3.0  # T = 3 second
 
-# LlamaLlama.com (or whatever fun website we want to make)is NOT in this list initially
+# LlamaLlama.com (or whatever fun website we want to make) is NOT in this list initially
 BLACKLIST = ["10.0.5.50", "192.168.1.99", "172.16.0.4"]
 
 def send_heartbeat():
@@ -26,19 +26,29 @@ def send_heartbeat():
 
 @app.route('/inspect', methods=['GET'])
 def inspect_traffic():
-    """The Firewall Inspection Engine: returns an ALLOW/BLOCK verdict for an IP."""
+    """The Firewall Inspection Engine: returns an ALLOW/BLOCK verdict for an IP and Payload."""
     target_ip = request.args.get('ip', "0.0.0.0")
+    
+    # --- NEW STUFF: Grab the payload from the request ---
+    payload = request.args.get('payload', "")
 
     # The Non-Deterministic Crash (5% chance)
     if random.randint(1, 20) == 1:
         print("\n[FATAL ERROR] Buffer overflow in Firewall routing! Crashing...")
         os._exit(1)
 
-    # Firewall Logic
+    # 1. Inspect IP against Blacklist (Original functionality)
     if target_ip in BLACKLIST:
-        print(f"[FIREWALL] BLOCKED {target_ip}")
+        print(f"[FIREWALL] BLOCKED {target_ip} (Blacklisted IP)")
         return jsonify({"ip": target_ip, "verdict": "BLOCK"}), 200
 
+    # --- NEW STUFF: Inspect Dummy Packet Payload for malicious signatures <----------
+    MALICIOUS_SIGNATURES = ["drop table", "script>", "malware"]
+    if any(sig in payload.lower() for sig in MALICIOUS_SIGNATURES):
+        print(f"[FIREWALL] BLOCKED {target_ip} (Malicious Payload Detected: {payload})")
+        return jsonify({"ip": target_ip, "verdict": "BLOCK"}), 200
+
+    # If it passes the blacklist and the payload check, allow it!
     print(f"[FIREWALL] ALLOWED {target_ip}")
     return jsonify({"ip": target_ip, "verdict": "ALLOW"}), 200
 
