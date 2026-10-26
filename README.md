@@ -3,6 +3,7 @@
 ### Critical Service Process: 
 - firewall.py
 -  non-deterministic crash, 5% chance for a crash to occur when accessing a website
+-  lines 32-35 of firewall.py
 
 ### Heartbeat Monitor Process: 
 - monitor.py
@@ -11,4 +12,5 @@
 - redPajama.py 
 - A standalone script or utility designed to attempt heartbeat spoofing, message replay, or false liveness injection against the monitor.
 ### Role Distribution: 
-- CONTRIBUTIONS.md included here
+- CONTRIBUTIONS.md 
+- Includes individual contributions and link to the unlisted youtube video
