@@ -1,3 +1,9 @@
+"""
+server.py (Updated for Part 2)
+
+Changes:
+1. Load balances / fails over requests to the secondary port if the primary is down.
+"""
 from flask import Flask, request, send_from_directory
 import os
 import json
@@ -5,29 +11,40 @@ import urllib.request
 import urllib.parse
 
 app = Flask(__name__)
-
 SERVER_IP = '127.0.0.1'
 SERVER_PORT = 8080
 
-# Where the firewall process (firewall.py) is listening for inspection requests
-FIREWALL_URL = 'http://127.0.0.1:8001/inspect'
-FIREWALL_TIMEOUT = 1.0  # seconds to wait for a verdict before treating the firewall as down
+# Now tracks both Primary and Secondary URLs
+FIREWALL_URLS = [
+    'http://127.0.0.1:8001/inspect', # Primary
+    'http://127.0.0.1:8002/inspect'  # Secondary
+]
+FIREWALL_TIMEOUT = 1.0
 
-# A dictionary simulating DNS
 DNS_RECORDS = {
     "llamallama.com": "10.0.99.99",
     "some blocked website": "10.0.5.50"
 }
 
 def ask_firewall(target_ip, payload=""):
-    """Ask the firewall process for a verdict. Returns "ALLOW", "BLOCK", or None if the firewall is down."""
-    url = f"{FIREWALL_URL}?{urllib.parse.urlencode({'ip': target_ip, 'payload': payload})}"
-    try:
-        with urllib.request.urlopen(url, timeout=FIREWALL_TIMEOUT) as resp:
-            return json.loads(resp.read())["verdict"]
-    except Exception:
-        # Connection refused / reset / timeout -> firewall crashed or is unreachable
-        return None
+    """
+    Attempts to ask the primary firewall. If it fails, attempts the secondary.
+    This simulates a load balancer or VIP failover routing client traffic.
+    """
+    params = urllib.parse.urlencode({'ip': target_ip, 'payload': payload})
+
+    for url in FIREWALL_URLS:
+        full_url = f"{url}?{params}"
+        try:
+            with urllib.request.urlopen(full_url, timeout=FIREWALL_TIMEOUT) as resp:
+                return json.loads(resp.read())["verdict"]
+        except Exception:
+             # Try next URL in list
+             continue
+
+    # Both failed
+    return None
+
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 # Mario GIF that bounces around the page like a DVD screensaver
@@ -80,7 +97,7 @@ def visit_site():
     site = request.args.get('site')
     target_ip = DNS_RECORDS.get(site, "0.0.0.0")
     dummy_payload = request.args.get('payload', 'standard web traffic')
-    
+
     print(f"   user IP = {request.remote_addr}, target_ip = {target_ip}, payload = {dummy_payload}")
 
     verdict = ask_firewall(target_ip, dummy_payload)
@@ -101,14 +118,14 @@ def visit_site():
         print(f"[SERVER] ⚠️  Firewall unreachable! Letting {site} ({target_ip}) through UNFILTERED")
         banner = """
         <div style="background-color: orange; color: black; padding: 10px; text-align: center; font-family: Arial;">
-            ⚠️ Vulcan Firewall is DOWN - this connection was not inspected! 
+            ⚠️ Vulcan Firewall is DOWN - this connection was not inspected!
         </div>
         """
     else:
         print(f"[SERVER] Firewall ALLOWED access to {site} ({target_ip})")
         banner = ""
 
- 
+
     if site == "llamallama.com":
         return banner + render_llama_website()
 
