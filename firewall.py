@@ -4,24 +4,42 @@ import threading
 import time
 import random
 import os
+import sys
+import checkpointing  # Import the checkpointing module
+
+
 
 app = Flask(__name__)
 
+##-- NEW MP1.2 CHANGES
+ROLE = "PRIMARY"
+FIREWALL_PORT = 8001
+
 FIREWALL_IP = '127.0.0.1'
-FIREWALL_PORT = 8001  # the web server (server.py) asks us for verdicts here
+#FIREWALL_PORT = 8001  # the web server (server.py) asks us for verdicts here
+
+# Allow starting as PRIMARY (8001) or SECONDARY (8002)
+if len(sys.argv) >= 3:
+    ROLE = sys.argv[1].upper()
+    FIREWALL_PORT = int(sys.argv[2])
 
 HEARTBEAT_IP = '127.0.0.1'
 HEARTBEAT_PORT = 8000
 HEARTBEAT_INTERVAL = 3.0  # T = 3 second
 
+# Load the initial state from the checkpoint file -- NEW MP1.2 CHANGES
+BLACKLIST = checkpointing.load_state()
+
 # LlamaLlama.com (or whatever fun website we want to make) is NOT in this list initially
-BLACKLIST = ["10.0.5.50", "192.168.1.99", "172.16.0.4"]
+# BLACKLIST = ["10.0.5.50", "192.168.1.99", "172.16.0.4"]
 
 def send_heartbeat():
     """Background thread emitting a UDP heartbeat."""
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     while True:
-        sock.sendto(b"HEARTBEAT", (HEARTBEAT_IP, HEARTBEAT_PORT))
+        payload = f"HEARTBEAT:{ROLE}".encode()
+        sock.sendto(payload, (HEARTBEAT_IP, HEARTBEAT_PORT))
+        
         time.sleep(HEARTBEAT_INTERVAL)
 
 @app.route('/inspect', methods=['GET'])
@@ -63,6 +81,11 @@ def hack_blacklist():
     return jsonify({"error": "Missing or duplicate IP"}), 400
 
 if __name__ == '__main__':
-    print(f"[FIREWALL] Starting Vulcan Firewall on port {FIREWALL_PORT}...")
+    print(f"[FIREWALL] Starting {ROLE} node on port {FIREWALL_PORT}...")
     threading.Thread(target=send_heartbeat, daemon=True).start()
-    app.run(host=FIREWALL_IP, port=FIREWALL_PORT)
+    
+    # NEW BLOCK: If this is the PRIMARY node, start the checkpointing daemon to save state periodically
+    if ROLE == "PRIMARY":
+        threading.Thread(target=checkpointing.state_saver_daemon, args=(BLACKLIST,), daemon=True).start()
+        
+        app.run(host=FIREWALL_IP, port=FIREWALL_PORT)
